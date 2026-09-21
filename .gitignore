@@ -1,6 +1,15 @@
+# Environnement virtuel
 env/
+
+# Python
 __pycache__/
 *.pyc
+
+# Base de données SQLite
 *.db
+
+# Variables d'environnement
 .env
+
+
 .agents/
