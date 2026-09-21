@@ -1,14 +1,14 @@
 import streamlit as st
-from database import get_all_words
+from database import get_words_to_review, update_review
 
 
 st.title("🧠 Réviser")
 
-words = get_all_words()
+words = get_words_to_review()
 
 
 if not words:
-    st.info("Tu n'as encore aucun mot à réviser.")
+    st.info("Tu n'as aucun mot à réviser aujourd'hui. Reviens demain pour continuer à apprendre !")
 
 else:
 
@@ -61,6 +61,8 @@ else:
         with col1:
             if st.button("✓ Je savais"):
 
+                update_review(word["id"], True)
+
                 st.session_state.current_card += 1
                 st.session_state.show_answer = False
 
@@ -71,6 +73,8 @@ else:
 
         with col2:
             if st.button("✗ Je ne savais pas"):
+
+                update_review(word["id"], False)
 
                 st.session_state.current_card += 1
                 st.session_state.show_answer = False
