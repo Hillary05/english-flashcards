@@ -72,8 +72,31 @@ def add_word(word, meanings):
 
         word_id = cursor.lastrowid
 
-    # Ajouter chaque sens
+    # Ajouter chaque sens seulement s'il n'existe pas déjà
     for meaning in meanings:
+
+        cursor.execute("""
+            SELECT id
+            FROM meanings
+            WHERE word_id = ?
+              AND translation = ?
+              AND definition = ?
+              AND example = ?
+              AND personal_example = ?
+              AND part_of_speech = ?
+        """, (
+            word_id,
+            meaning["translation"],
+            meaning.get("definition"),
+            meaning.get("example"),
+            meaning.get("personal_example"),
+            meaning.get("part_of_speech")
+        ))
+
+        existing_meaning = cursor.fetchone()
+
+        if existing_meaning:
+            continue
 
         cursor.execute("""
             INSERT INTO meanings (
@@ -278,18 +301,82 @@ def get_words_to_review():
     cursor = connection.cursor()
 
     cursor.execute("""
-        SELECT *
+        SELECT
+            words.id,
+            words.word,
+            words.date_added,
+            words.level,
+            words.last_reviewed,
+            words.next_review,
+            meanings.id AS meaning_id,
+            meanings.translation,
+            meanings.definition,
+            meanings.example,
+            meanings.personal_example,
+            meanings.part_of_speech
         FROM words
-        WHERE next_review IS NULL
-           OR next_review <= CURRENT_TIMESTAMP
-        ORDER BY next_review
+        LEFT JOIN meanings
+            ON words.id = meanings.word_id
+        WHERE words.next_review IS NULL
+           OR words.next_review <= CURRENT_TIMESTAMP
+        ORDER BY words.next_review
     """)
 
-    words = cursor.fetchall()
+    rows = cursor.fetchall()
 
     connection.close()
 
-    return words
+    # Regrouper les différents sens
+    words = {}
+
+    for row in rows:
+
+        word_id = row["id"]
+
+        if word_id not in words:
+            words[word_id] = {
+                "id": row["id"],
+                "word": row["word"],
+                "date_added": row["date_added"],
+                "level": row["level"],
+                "last_reviewed": row["last_reviewed"],
+                "next_review": row["next_review"],
+                "meanings": []
+            }
+
+        if row["meaning_id"] is not None:
+            words[word_id]["meanings"].append({
+                "id": row["meaning_id"],
+                "translation": row["translation"],
+                "definition": row["definition"],
+                "example": row["example"],
+                "personal_example": row["personal_example"],
+                "part_of_speech": row["part_of_speech"]
+            })
+
+    return list(words.values())
+
+# def get_words_to_review():
+#     connection = get_connection()
+
+#     if connection is None:
+#         return []
+
+#     cursor = connection.cursor()
+
+#     cursor.execute("""
+#         SELECT *
+#         FROM words
+#         WHERE next_review IS NULL
+#            OR next_review <= CURRENT_TIMESTAMP
+#         ORDER BY next_review
+#     """)
+
+#     words = cursor.fetchall()
+
+#     connection.close()
+
+#     return words
 
 def initialize_database():
     connection = get_connection()

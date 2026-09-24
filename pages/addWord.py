@@ -110,7 +110,8 @@ if st.button("💾 Ajouter le mot"):
         keys_to_reset = [ "word", "number_of_meanings" ]
 
         for i in range(5): 
-            keys_to_reset.extend([ 
+            keys_to_reset.extend([
+                f"number_of_meanings_{i}",
                 f"part_of_speech_{i}",
                 f"translation_{i}", 
                 f"definition_{i}", 
